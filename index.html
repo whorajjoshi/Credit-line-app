@@ -1,4 +1,4 @@
-<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -24,6 +24,7 @@ input:focus{border-color:#0d47a1;box-shadow:0 0 5px rgba(13,71,161,0.3);}
 .toggle-password input{width:18px;height:18px;margin-right:6px;}
 .btn{width:100%;padding:12px;margin-top:15px;background:linear-gradient(135deg,#0d47a1,#42a5f5);color:white;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;transition:0.3s;}
 .btn:hover{background:linear-gradient(135deg,#08306b,#1e88e5);}
+.btn:disabled{opacity:0.6;cursor:not-allowed;}
 .form-toggle{text-align:center;margin-top:15px;font-size:14px;color:#555;}
 .form-toggle a{color:#0d47a1;text-decoration:none;font-weight:500;cursor:pointer;}
 .form-toggle a:hover{text-decoration:underline;}
@@ -42,7 +43,7 @@ input:focus{border-color:#0d47a1;box-shadow:0 0 5px rgba(13,71,161,0.3);}
   <div id="signup-form">
     <input type="text" id="name" placeholder="Full Name">
     <input type="text" id="mobile" placeholder="Mobile Number (10 digits)">
-    <input type="password" id="password" placeholder="Password">
+    <input type="password" id="password" placeholder="Password (min 6 chars)">
     <div class="toggle-password">
       <input type="checkbox" id="showPassword"> <label for="showPassword">Show Password</label>
     </div>
@@ -74,7 +75,7 @@ input:focus{border-color:#0d47a1;box-shadow:0 0 5px rgba(13,71,161,0.3);}
 </div>
 
 <script>
-  // Firebase configuration
+  // Firebase config
   const firebaseConfig = {
     apiKey: "YOUR_API_KEY",
     authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
@@ -87,7 +88,7 @@ input:focus{border-color:#0d47a1;box-shadow:0 0 5px rgba(13,71,161,0.3);}
   const auth = firebase.auth();
   const db = firebase.firestore();
 
-  // Show/Hide Password
+  // Show/Hide password
   document.getElementById('showPassword').addEventListener('change',()=>{
     document.getElementById('password').type = document.getElementById('showPassword').checked ? 'text':'password';
   });
@@ -106,9 +107,10 @@ input:focus{border-color:#0d47a1;box-shadow:0 0 5px rgba(13,71,161,0.3);}
     document.getElementById('signup-form').style.display='block';
   });
 
-  // OTP Signup
+  // OTP signup
   let confirmationResult;
-  document.getElementById('sendOtpBtn').addEventListener('click',()=>{
+  const sendOtpBtn = document.getElementById('sendOtpBtn');
+  sendOtpBtn.addEventListener('click',()=>{
     const name=document.getElementById('name').value.trim();
     const mobile=document.getElementById('mobile').value.trim();
     const password=document.getElementById('password').value.trim();
@@ -116,18 +118,23 @@ input:focus{border-color:#0d47a1;box-shadow:0 0 5px rgba(13,71,161,0.3);}
     errorMsg.textContent='';
 
     if(!name || !mobile || !password){ errorMsg.textContent="All fields are required"; return; }
+    if(password.length < 6){ errorMsg.textContent="Password must be at least 6 characters"; return; }
     if(!/^\d{10}$/.test(mobile)){ errorMsg.textContent="Enter a valid 10-digit mobile number"; return; }
 
     db.collection("users").doc(mobile).get().then(doc=>{
       if(doc.exists){ errorMsg.textContent="Mobile number already registered!"; }
       else{
+        sendOtpBtn.disabled = true;
         window.recaptchaVerifier=new firebase.auth.RecaptchaVerifier('recaptcha-container',{'size':'normal'});
         auth.signInWithPhoneNumber("+91"+mobile,window.recaptchaVerifier)
           .then(result=>{
             confirmationResult=result;
             document.getElementById('signup-form').style.display='none';
             document.getElementById('otp-form').style.display='block';
-          }).catch(err=>{ errorMsg.textContent=err.message; });
+          }).catch(err=>{
+            errorMsg.textContent=err.message;
+            sendOtpBtn.disabled=false;
+          });
       }
     });
   });
@@ -136,31 +143,35 @@ input:focus{border-color:#0d47a1;box-shadow:0 0 5px rgba(13,71,161,0.3);}
     const otp=document.getElementById('otp').value.trim();
     const otpErrorMsg=document.getElementById('otpErrorMsg');
     otpErrorMsg.textContent='';
+    if(!otp){ otpErrorMsg.textContent="Enter OTP"; return; }
+
     confirmationResult.confirm(otp).then(result=>{
       const name=document.getElementById('name').value.trim();
       const mobile=document.getElementById('mobile').value.trim();
       const password=document.getElementById('password').value.trim();
       db.collection("users").doc(mobile).set({name,mobile,password})
         .then(()=>{
+          sessionStorage.setItem('mobile', mobile);
           alert("✅ Sign Up Successful!");
-          document.getElementById('otp-form').style.display='none';
-          document.getElementById('signin-form').style.display='block';
-          document.getElementById('signinMobile').value=mobile;
+          window.location.href="dashboard.html";
         }).catch(err=>{ otpErrorMsg.textContent=err.message; });
     }).catch(err=>{ otpErrorMsg.textContent="Invalid OTP, try again"; });
   });
 
-  // Sign In
+  // Sign in
   document.getElementById('signinBtn').addEventListener('click',()=>{
     const mobile=document.getElementById('signinMobile').value.trim();
     const password=document.getElementById('signinPassword').value.trim();
     const signinErrorMsg=document.getElementById('signinErrorMsg');
     signinErrorMsg.textContent='';
+    if(!mobile || !password){ signinErrorMsg.textContent="All fields are required"; return; }
+
     db.collection("users").doc(mobile).get().then(doc=>{
       if(doc.exists && doc.data().password===password){
+        sessionStorage.setItem('mobile', mobile);
         alert(`✅ Welcome back, ${doc.data().name}!`);
-        window.location.href="dashboard.html?mobile="+mobile;
-      }else{
+        window.location.href="dashboard.html";
+      } else {
         signinErrorMsg.textContent="Invalid mobile number or password!";
       }
     });
