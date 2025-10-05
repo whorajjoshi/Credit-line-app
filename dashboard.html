@@ -35,7 +35,6 @@ p{font-size:16px;margin:10px 0;}
 </div>
 
 <script>
-  // 🔥 Firebase config - Replace with your actual config
   const firebaseConfig = {
     apiKey: "AIzaSyDf48c79QBIgWjNuqiRMywbj2wNYDnLIZ4",
     authDomain: "credit-line-app-23a0f.firebaseapp.com",
@@ -44,44 +43,35 @@ p{font-size:16px;margin:10px 0;}
     messagingSenderId: "72743508147",
     appId: "1:72743508147:web:039c06a12691b997cdf8c6"
   };
-
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
-  const auth = firebase.auth();
 
-  // Check if user is logged in via Firebase Auth
-  auth.onAuthStateChanged(user => {
-    if(!user){
-      alert("No user logged in, redirecting to login.");
-      window.location.href="index.html";
-    } else {
-      const mobile = user.phoneNumber;
-
-      // Fetch user info from Firestore
-      db.collection("users").doc(mobile).get().then(doc=>{
-        if(doc.exists){
-          const data = doc.data();
-          document.getElementById("welcomeMsg").textContent = `Welcome, ${data.name || 'User'}!`;
-          document.getElementById("mobileDisplay").textContent = `Mobile: ${mobile}`;
-        } else {
-          // If no user data, create default
-          db.collection("users").doc(mobile).set({mobile: mobile, name: "User"});
-          document.getElementById("welcomeMsg").textContent = `Welcome, User!`;
-          document.getElementById("mobileDisplay").textContent = `Mobile: ${mobile}`;
-        }
-      }).catch(err=>{
-        alert("Error fetching user data. Redirecting to login.");
+  const mobile = sessionStorage.getItem('mobile');
+  if(!mobile){
+    alert("No user logged in, redirecting to login.");
+    window.location.href="index.html";
+  } else {
+    db.collection("users").doc(mobile).get().then(doc=>{
+      if(doc.exists){
+        const data = doc.data();
+        document.getElementById("welcomeMsg").textContent = `Welcome, ${data.name}!`;
+        document.getElementById("mobileDisplay").textContent = `Mobile: ${data.mobile}`;
+      } else {
+        alert("User not found! Redirecting to login.");
+        sessionStorage.removeItem('mobile');
         window.location.href="index.html";
-      });
-    }
-  });
-
-  // Logout
-  document.getElementById("logoutBtn").addEventListener("click",()=>{
-    auth.signOut().then(()=>{
-      alert("Logged out successfully!");
+      }
+    }).catch(err=>{
+      alert("Error fetching user data. Redirecting to login.");
+      sessionStorage.removeItem('mobile');
       window.location.href="index.html";
     });
+  }
+
+  document.getElementById("logoutBtn").addEventListener("click",()=>{
+    sessionStorage.removeItem('mobile');
+    alert("Logged out successfully!");
+    window.location.href="index.html";
   });
 </script>
 
