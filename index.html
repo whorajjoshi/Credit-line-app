@@ -75,14 +75,14 @@ input:focus{border-color:#0d47a1;box-shadow:0 0 5px rgba(13,71,161,0.3);}
 </div>
 
 <script>
-  // Firebase config
+  // 🔥 Firebase config
   const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyDf48c79QBIgWjNuqiRMywbj2wNYDnLIZ4",
+    authDomain: "credit-line-app-23a0f.firebaseapp.com",
+    projectId: "credit-line-app-23a0f",
+    storageBucket: "credit-line-app-23a0f.firebasestorage.app",
+    messagingSenderId: "72743508147",
+    appId: "1:72743508147:web:039c06a12691b997cdf8c6"
   };
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
@@ -151,8 +151,8 @@ input:focus{border-color:#0d47a1;box-shadow:0 0 5px rgba(13,71,161,0.3);}
       const password=document.getElementById('password').value.trim();
       db.collection("users").doc(mobile).set({name,mobile,password})
         .then(()=>{
-          sessionStorage.setItem('mobile', mobile);
-          alert("✅ Sign Up Successful!");
+          // ✅ store mobile in Firebase Auth session
+          alert("Sign Up Successful!");
           window.location.href="dashboard.html";
         }).catch(err=>{ otpErrorMsg.textContent=err.message; });
     }).catch(err=>{ otpErrorMsg.textContent="Invalid OTP, try again"; });
@@ -168,8 +168,7 @@ input:focus{border-color:#0d47a1;box-shadow:0 0 5px rgba(13,71,161,0.3);}
 
     db.collection("users").doc(mobile).get().then(doc=>{
       if(doc.exists && doc.data().password===password){
-        sessionStorage.setItem('mobile', mobile);
-        alert(`✅ Welcome back, ${doc.data().name}!`);
+        alert(`Welcome back, ${doc.data().name || 'User'}!`);
         window.location.href="dashboard.html";
       } else {
         signinErrorMsg.textContent="Invalid mobile number or password!";
