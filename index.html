@@ -88,6 +88,12 @@ input:focus{border-color:#0d47a1;box-shadow:0 0 5px rgba(13,71,161,0.3);}
   const auth = firebase.auth();
   const db = firebase.firestore();
 
+  // Render Recaptcha once on page load
+  window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+    'size': 'normal'
+  });
+  recaptchaVerifier.render().then(widgetId => { window.recaptchaWidgetId = widgetId; });
+
   // Show/Hide password
   document.getElementById('showPassword').addEventListener('change',()=>{
     document.getElementById('password').type = document.getElementById('showPassword').checked ? 'text':'password';
@@ -109,8 +115,7 @@ input:focus{border-color:#0d47a1;box-shadow:0 0 5px rgba(13,71,161,0.3);}
 
   // OTP signup
   let confirmationResult;
-  const sendOtpBtn = document.getElementById('sendOtpBtn');
-  sendOtpBtn.addEventListener('click',()=>{
+  document.getElementById('sendOtpBtn').addEventListener('click',()=>{
     const name=document.getElementById('name').value.trim();
     const mobile=document.getElementById('mobile').value.trim();
     const password=document.getElementById('password').value.trim();
@@ -121,27 +126,62 @@ input:focus{border-color:#0d47a1;box-shadow:0 0 5px rgba(13,71,161,0.3);}
     if(password.length < 6){ errorMsg.textContent="Password must be at least 6 characters"; return; }
     if(!/^\d{10}$/.test(mobile)){ errorMsg.textContent="Enter a valid 10-digit mobile number"; return; }
 
-    db.collection("users").doc(mobile).get().then(doc=>{
-      if(doc.exists){ errorMsg.textContent="Mobile number already registered!"; }
-      else{
-        sendOtpBtn.disabled = true;
-        window.recaptchaVerifier=new firebase.auth.RecaptchaVerifier('recaptcha-container',{'size':'normal'});
-        auth.signInWithPhoneNumber("+91"+mobile,window.recaptchaVerifier)
-          .then(result=>{
-            confirmationResult=result;
-            document.getElementById('signup-form').style.display='none';
-            document.getElementById('otp-form').style.display='block';
-          }).catch(err=>{
-            errorMsg.textContent=err.message;
-            sendOtpBtn.disabled=false;
-          });
-      }
-    });
+    // Disable button
+    document.getElementById('sendOtpBtn').disabled = true;
+
+    auth.signInWithPhoneNumber("+91"+mobile, window.recaptchaVerifier)
+      .then(result=>{
+        confirmationResult=result;
+        document.getElementById('signup-form').style.display='none';
+        document.getElementById('otp-form').style.display='block';
+      }).catch(err=>{
+        errorMsg.textContent=err.message;
+        document.getElementById('sendOtpBtn').disabled=false;
+      });
   });
 
   document.getElementById('verifyOtpBtn').addEventListener('click',()=>{
     const otp=document.getElementById('otp').value.trim();
     const otpErrorMsg=document.getElementById('otpErrorMsg');
+    otpErrorMsg.textContent='';
+    if(!otp){ otpErrorMsg.textContent="Enter OTP"; return; }
+
+    confirmationResult.confirm(otp).then(result=>{
+      const name=document.getElementById('name').value.trim();
+      const mobile=document.getElementById('mobile').value.trim();
+      const password=document.getElementById('password').value.trim();
+
+      db.collection("users").doc(mobile).set({name,mobile,password})
+        .then(()=>{
+          alert("✅ Sign Up Successful!");
+          window.location.href="dashboard.html";
+        }).catch(err=>{ otpErrorMsg.textContent=err.message; });
+    }).catch(err=>{
+      otpErrorMsg.textContent="Invalid OTP, try again";
+    });
+  });
+
+  // Sign in
+  document.getElementById('signinBtn').addEventListener('click',()=>{
+    const mobile=document.getElementById('signinMobile').value.trim();
+    const password=document.getElementById('signinPassword').value.trim();
+    const signinErrorMsg=document.getElementById('signinErrorMsg');
+    signinErrorMsg.textContent='';
+    if(!mobile || !password){ signinErrorMsg.textContent="All fields are required"; return; }
+
+    db.collection("users").doc(mobile).get().then(doc=>{
+      if(doc.exists && doc.data().password===password){
+        alert(`✅ Welcome back, ${doc.data().name || 'User'}!`);
+        window.location.href="dashboard.html";
+      } else {
+        signinErrorMsg.textContent="Invalid mobile number or password!";
+      }
+    });
+  });
+
+</script>
+</body>
+</html>    const otpErrorMsg=document.getElementById('otpErrorMsg');
     otpErrorMsg.textContent='';
     if(!otp){ otpErrorMsg.textContent="Enter OTP"; return; }
 
