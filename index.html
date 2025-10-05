@@ -75,7 +75,7 @@ input:focus{border-color:#0d47a1;box-shadow:0 0 5px rgba(13,71,161,0.3);}
 </div>
 
 <script>
-  // 🔥 Firebase config
+  // Firebase config
   const firebaseConfig = {
     apiKey: "AIzaSyDf48c79QBIgWjNuqiRMywbj2wNYDnLIZ4",
     authDomain: "credit-line-app-23a0f.firebaseapp.com",
@@ -126,7 +126,6 @@ input:focus{border-color:#0d47a1;box-shadow:0 0 5px rgba(13,71,161,0.3);}
     if(password.length < 6){ errorMsg.textContent="Password must be at least 6 characters"; return; }
     if(!/^\d{10}$/.test(mobile)){ errorMsg.textContent="Enter a valid 10-digit mobile number"; return; }
 
-    // Disable button
     document.getElementById('sendOtpBtn').disabled = true;
 
     auth.signInWithPhoneNumber("+91"+mobile, window.recaptchaVerifier)
@@ -153,6 +152,7 @@ input:focus{border-color:#0d47a1;box-shadow:0 0 5px rgba(13,71,161,0.3);}
 
       db.collection("users").doc(mobile).set({name,mobile,password})
         .then(()=>{
+          sessionStorage.setItem('mobile', mobile);
           alert("✅ Sign Up Successful!");
           window.location.href="dashboard.html";
         }).catch(err=>{ otpErrorMsg.textContent=err.message; });
@@ -171,48 +171,14 @@ input:focus{border-color:#0d47a1;box-shadow:0 0 5px rgba(13,71,161,0.3);}
 
     db.collection("users").doc(mobile).get().then(doc=>{
       if(doc.exists && doc.data().password===password){
+        sessionStorage.setItem('mobile', mobile);
         alert(`✅ Welcome back, ${doc.data().name || 'User'}!`);
         window.location.href="dashboard.html";
       } else {
         signinErrorMsg.textContent="Invalid mobile number or password!";
       }
-    });
-  });
-
-</script>
-</body>
-</html>    const otpErrorMsg=document.getElementById('otpErrorMsg');
-    otpErrorMsg.textContent='';
-    if(!otp){ otpErrorMsg.textContent="Enter OTP"; return; }
-
-    confirmationResult.confirm(otp).then(result=>{
-      const name=document.getElementById('name').value.trim();
-      const mobile=document.getElementById('mobile').value.trim();
-      const password=document.getElementById('password').value.trim();
-      db.collection("users").doc(mobile).set({name,mobile,password})
-        .then(()=>{
-          // ✅ store mobile in Firebase Auth session
-          alert("Sign Up Successful!");
-          window.location.href="dashboard.html";
-        }).catch(err=>{ otpErrorMsg.textContent=err.message; });
-    }).catch(err=>{ otpErrorMsg.textContent="Invalid OTP, try again"; });
-  });
-
-  // Sign in
-  document.getElementById('signinBtn').addEventListener('click',()=>{
-    const mobile=document.getElementById('signinMobile').value.trim();
-    const password=document.getElementById('signinPassword').value.trim();
-    const signinErrorMsg=document.getElementById('signinErrorMsg');
-    signinErrorMsg.textContent='';
-    if(!mobile || !password){ signinErrorMsg.textContent="All fields are required"; return; }
-
-    db.collection("users").doc(mobile).get().then(doc=>{
-      if(doc.exists && doc.data().password===password){
-        alert(`Welcome back, ${doc.data().name || 'User'}!`);
-        window.location.href="dashboard.html";
-      } else {
-        signinErrorMsg.textContent="Invalid mobile number or password!";
-      }
+    }).catch(err=>{
+      signinErrorMsg.textContent="Error fetching user data!";
     });
   });
 
